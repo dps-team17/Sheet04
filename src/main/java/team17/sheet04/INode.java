@@ -8,6 +8,8 @@ public interface INode {
 
     String SYNC_MESSAGE = "SYNC";
     String BROADCAST_MESSAGE = "BROADCAST";
+    String NODE_LOOKUP_REQUEST = "LOOKUP_REQUEST";
+    String NODE_LOOKUP_RESPONSE = "LOOKUP_RESPONSE";
 
     void Connect();
 

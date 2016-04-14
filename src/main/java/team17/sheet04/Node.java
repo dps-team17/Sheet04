@@ -21,6 +21,7 @@ public class Node implements INode {
     private Random rnd;
     private boolean printSyncMessages;
     private String lastBroadcastMessage;
+    private int lastLookupMessage;
 
 
     private Thread listenerThread;
@@ -461,5 +462,25 @@ public class Node implements INode {
      */
     private void log(String message) {
         System.out.printf("%d: %s\n", nodeId, message);
+    }
+
+
+    private String getLookupRequestMessage(int id, NodeInfo requester){
+
+        StringBuilder sb = new StringBuilder();
+
+        // Add Header
+        sb.append(NODE_LOOKUP_REQUEST).append(separator);
+
+        // Add sender
+        sb.append(this.getNodeInfo().toString()).append(separator);
+
+        // Add requester
+        sb.append(requester.toString()).append(separator);
+
+        // Add node id
+        sb.append(id).append(separator);
+
+        return sb.toString();
     }
 }

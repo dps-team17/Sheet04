@@ -26,7 +26,7 @@ public class TestBroadcast {
 
         INode n0 = nodes.get(0);
 
-        VisualizeNodes viz = new VisualizeNodes(nodes);
+        VisualizeNodes viz = new VisualizeNodes(nodes, false);
         viz.start();
 
         Thread.sleep(100);
