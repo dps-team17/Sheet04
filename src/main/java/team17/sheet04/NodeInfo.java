@@ -9,17 +9,25 @@ public class NodeInfo {
 
     private String hostname;
     private int port;
+    private int nodeId;
 
     /**
      * Creates a new instance of an node info
      *
+     * @param id the id of the node
      * @param hostname the hostname of the node
      * @param port    the nodes port number
      */
-    public NodeInfo(String hostname, int port) {
+    public NodeInfo(int id, String hostname, int port) {
+        this.nodeId = id;
         this.hostname = hostname;
         this.port = port;
     }
+
+    public int getNodeId(){
+        return nodeId;
+    }
+
 
     /**
      * Gets the nodes port number

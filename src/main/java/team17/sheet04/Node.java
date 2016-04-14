@@ -12,13 +12,14 @@ import java.util.Random;
 
 public class Node implements INode {
 
-    private static int NODES_CREATED = 0;
+    private static volatile int NODES_CREATED = 0;
     private static final String separator = ";";
 
     private int nodeId;
     private NodeInfo[] nodeTable;
     private ServerSocket serverSocket;
     private Random rnd;
+    private boolean printSyncMessages;
 
 
     private Thread listenerThread;
@@ -33,10 +34,12 @@ public class Node implements INode {
 
     /**
      * Create a new node
+     *
      * @param syncPartner the node information of the initial sync partner
      */
     public Node(NodeInfo syncPartner) {
         this.nodeId = NODES_CREATED++;
+        this.printSyncMessages = true;
 
         // Init node table
         nodeTable = new NodeInfo[NODE_TABLE_SIZE];
@@ -87,14 +90,14 @@ public class Node implements INode {
     }
 
     @Override
-    public void Send(String msg, NodeInfo recipient) {
-
+    public void SendBroadcast(String msg) {
+        SendBroadcast(msg, HOP_COUNT);
     }
 
     @Override
     public NodeInfo getNodeInfo() {
         try {
-            return new NodeInfo(InetAddress.getLocalHost().getHostName(), serverSocket.getLocalPort());
+            return new NodeInfo(this.nodeId, InetAddress.getLocalHost().getHostName(), serverSocket.getLocalPort());
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
@@ -105,6 +108,11 @@ public class Node implements INode {
     @Override
     public synchronized NodeInfo[] getKnownNodes() {
         return nodeTable.clone();
+    }
+
+    @Override
+    public void ShowSyncMessages(boolean value) {
+        this.printSyncMessages = value;
     }
 
     private void createSyncThread() {
@@ -138,7 +146,7 @@ public class Node implements INode {
         };
     }
 
-    private void createListenerThread(){
+    private void createListenerThread() {
 
         listenerThread = new Thread() {
 
@@ -156,7 +164,7 @@ public class Node implements INode {
 
                         try (Socket requester = serverSocket.accept()) {
 
-                            processReqeust(requester);
+                            processRequest(requester);
 
                         } catch (SocketException e) {
                             // socket closed ignore
@@ -174,18 +182,29 @@ public class Node implements INode {
         };
     }
 
-    private void processReqeust(Socket requester){
+    private void processRequest(Socket requester) {
 
         try (PrintWriter out = new PrintWriter(requester.getOutputStream(), true);
              BufferedReader in = new BufferedReader(new InputStreamReader(requester.getInputStream()));
         ) {
             // Process request
             String request = in.readLine();
+
+            final String[] parts = request.split(separator);
+
+            switch (parts[0]) {
+                case SYNC_MESSAGE:
+                    processSyncResponse(request);
+                    out.println(getSyncMessage());
+                    break;
+                case BROADCAST_MESSAGE:
+                    processBroadcastMessage(request);
+                    break;
+            }
+
+
             processSyncResponse(request);
 
-            // Send response
-            String response = getSyncMessage();
-            out.println(getSyncMessage());
 
         } catch (IOException e) {
             // socket closed ignore
@@ -209,21 +228,21 @@ public class Node implements INode {
 
             // Send sync request
             String requestString = getSyncMessage();
-            log("Sending request: " + requestString);
+            if (printSyncMessages) log("Sending request: " + requestString);
             out.println(requestString);
 
             // Wait for sync response
             s.setSoTimeout(5000);
             final String response = in.readLine();
-            log("Received response: "+response);
-            if(response != null){
+            if (printSyncMessages) log("Received response: " + response);
+            if (response != null) {
                 processSyncResponse(response);
             } else {
                 log(syncPartner.getHostName() + " is not reachable any more.");
                 removeNode(syncPartner);
             }
 
-        } catch (ConnectException e){
+        } catch (ConnectException e) {
             log(syncPartner.getHostName() + " is not reachable any more.");
             removeNode(syncPartner);
         } catch (IOException e) {
@@ -233,12 +252,13 @@ public class Node implements INode {
 
     /**
      * Removes the node from the node table
+     *
      * @param syncPartner the node to remove
      */
     private synchronized void removeNode(NodeInfo syncPartner) {
 
-        for(int i = 0; i< nodeTable.length; i++){
-            if(nodeTable[i] != null && nodeTable[i].equals(syncPartner)){
+        for (int i = 0; i < nodeTable.length; i++) {
+            if (nodeTable[i] != null && nodeTable[i].equals(syncPartner)) {
                 nodeTable[i] = null;
                 break;
             }
@@ -247,6 +267,7 @@ public class Node implements INode {
 
     /**
      * Checks if the node has node in the node table
+     *
      * @return true if there is a least one node, otherwise false
      */
     private boolean hasKnownNodes() {
@@ -266,6 +287,7 @@ public class Node implements INode {
     /**
      * Returns a randomly chosen port number from the range of dynamic ports
      * (49152 - 65534)
+     *
      * @return a randomly chosen dynamic port number
      */
     private int getRandomDynamicPort() {
@@ -275,6 +297,7 @@ public class Node implements INode {
 
     /**
      * Returns a randomly chosen node form the node table
+     *
      * @return a randomly chosen node from the node table
      */
     private NodeInfo getRandomNode() {
@@ -292,15 +315,16 @@ public class Node implements INode {
 
     /**
      * Returns a new sync message with the current known nodes
+     *
      * @return a new sync message
      */
-    private String getSyncMessage()  {
+    private String getSyncMessage() {
 
         StringBuilder sb = new StringBuilder();
 
         try {
             // Add header
-            sb.append("SYNC" + separator);
+            sb.append(SYNC_MESSAGE + separator);
 
             synchronized (this) {
                 // Add known nodes
@@ -309,13 +333,13 @@ public class Node implements INode {
                     NodeInfo n = nodeTable[i];
                     if (n == null) continue;
 
-                    sb.append(String.format("%s:%d", n.getHostName(), n.getPort()) + separator);
+                    sb.append(String.format("%d:%s:%d",n.getNodeId(), n.getHostName(), n.getPort()) + separator);
                 }
             }
 
             // Add self
             String hostname = InetAddress.getLocalHost().getHostName();
-            sb.append(String.format("%s:%d", hostname, serverSocket.getLocalPort()) + separator);
+            sb.append(String.format("%d:%s:%d",this.nodeId, hostname, serverSocket.getLocalPort()) + separator);
 
         } catch (UnknownHostException e) {
             System.err.println("The node is not connected to a network");
@@ -323,24 +347,79 @@ public class Node implements INode {
         return sb.toString();
     }
 
+    private void SendBroadcast(String msg, int hop) {
+
+        String bcmsg = getBroadcastMessage(hop, msg);
+
+        for (NodeInfo n : nodeTable) {
+
+            try (Socket s = new Socket(n.getHostName(), n.getPort());
+                 PrintWriter out = new PrintWriter(s.getOutputStream(), true)) {
+
+                log(String.format("Broadcast to %s:%d: %s\n", n.getHostName(), n.getPort(), bcmsg));
+                out.println(bcmsg);
+
+            } catch (ConnectException e) {
+                log(n.getHostName() + " is not reachable any more.");
+                removeNode(n);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private String getBroadcastMessage(int hop, String message) {
+
+        StringBuilder sb = new StringBuilder();
+
+        // add header
+        sb.append(BROADCAST_MESSAGE + separator);
+
+        // add hop count
+        sb.append(hop);
+        sb.append(separator);
+
+        // add message
+        sb.append(message + separator);
+
+        return sb.toString();
+    }
+
+    private void processBroadcastMessage(String request) {
+
+        final String[] parts = request.split(separator);
+
+        int hop = Integer.parseInt(parts[1]);
+        hop--;
+
+        if (hop >= 0) {
+            SendBroadcast(parts[2], hop);
+        }
+
+        log("Broadcast received: " + parts[2]);
+
+    }
+
     /**
      * Merges the current node table with the nodes form the sync response
+     *
      * @param response the sync response to merge
-    */
-    private void processSyncResponse(String response){
+     */
+    private void processSyncResponse(String response) {
 
         String[] parts = response.split(separator);
 
-        if (!parts[0].equals("SYNC")) return;
+        if (!parts[0].equals(SYNC_MESSAGE)) return;
 
         List<NodeInfo> nodes = new ArrayList<>();
 
         // Parse response
         for (int i = 1; i < parts.length; i++) {
             String[] node = parts[i].split(":");
-            String hostname = node[0];
-            int port = Integer.parseInt(node[1]);
-            nodes.add(new NodeInfo(hostname, port));
+            int id = Integer.parseInt(node[0]);
+            String hostname = node[1];
+            int port = Integer.parseInt(node[2]);
+            nodes.add(new NodeInfo(id, hostname, port));
         }
 
         // remove self reference
@@ -366,6 +445,7 @@ public class Node implements INode {
 
     /**
      * Logs the message to the std out.
+     *
      * @param message the message to log.
      */
     private void log(String message) {
