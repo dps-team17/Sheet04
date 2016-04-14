@@ -21,7 +21,7 @@ public class TestClient {
 			nodes.add(node);
 		}
 
-		VisualizeNodes viz = new VisualizeNodes(nodes);
+		VisualizeNodes viz = new VisualizeNodes(nodes, true);
 		viz.start();
 
 		Thread.sleep(8000);
@@ -34,10 +34,9 @@ public class TestClient {
 		nodes.add(n3);
 		viz.actualizeNodes(nodes);
 
-		/*
-		 * Thread.sleep(10000); n1.Connect(); nodes.add(n1);
-		 * viz.actualizeNodes(nodes);
-		 */
+		Thread.sleep(10000);
+		n1.Connect();
+
 	}
 
 	private static NodeInfo getRandomNodeInfo() {

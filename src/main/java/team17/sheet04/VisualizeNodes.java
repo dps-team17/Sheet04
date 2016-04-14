@@ -10,11 +10,13 @@ public class VisualizeNodes extends Thread {
 	private int amountNodes;
 	private boolean matrix[][];
 	private Integer[] nodeNames;
+	private boolean endless = true;
 
 	private ConcurrentHashMap<Integer, Integer> nodeMap = new ConcurrentHashMap<>();
 
-	public VisualizeNodes(List<INode> nodes) {
+	public VisualizeNodes(List<INode> nodes, boolean endless) {
 		this.nodes = new LinkedList<INode>(nodes);
+		this.endless = endless;
 		amountNodes = nodes.size();
 		matrix = new boolean[amountNodes][amountNodes];
 		int i = 0;
@@ -51,7 +53,7 @@ public class VisualizeNodes extends Thread {
 
 	@Override
 	public void run() {
-		while (!isInterrupted()) {
+		do {
 			synchronized (this.nodes) {
 				for (INode n : nodes) {
 					int index1 = nodeMap.get(n.getNodeInfo().getNodeId());
@@ -86,7 +88,7 @@ public class VisualizeNodes extends Thread {
 			} catch (InterruptedException e) {
 				interrupt();
 			}
-		}
+		} while (endless && !isInterrupted());
 
 	}
 
