@@ -39,7 +39,7 @@ public class Node implements INode {
      */
     public Node(NodeInfo syncPartner) {
         this.nodeId = NODES_CREATED++;
-        this.printSyncMessages = false;
+        this.printSyncMessages = true;
 
         // Init node table
         nodeTable = new NodeInfo[NODE_TABLE_SIZE];
@@ -214,13 +214,15 @@ public class Node implements INode {
     private void sync() {
 
         if (!hasKnownNodes()) {
-            log("No sync partner found");
+            if (printSyncMessages) log("No sync partner found");
             return;
         }
 
         NodeInfo syncPartner = getRandomNode();
 
-        log("Try to sync with " + syncPartner.getHostName() + ":" + syncPartner.getPort());
+        if (printSyncMessages) {
+            log("Try to sync with " + syncPartner.getHostName() + ":" + syncPartner.getPort());
+        }
 
         try (Socket s = new Socket(syncPartner.getHostName(), syncPartner.getPort());
              PrintWriter out = new PrintWriter(s.getOutputStream(), true);
@@ -333,13 +335,13 @@ public class Node implements INode {
                     NodeInfo n = nodeTable[i];
                     if (n == null) continue;
 
-                    sb.append(String.format("%d:%s:%d",n.getNodeId(), n.getHostName(), n.getPort()) + separator);
+                    sb.append(String.format("%d:%s:%d", n.getNodeId(), n.getHostName(), n.getPort()) + separator);
                 }
             }
 
             // Add self
             String hostname = InetAddress.getLocalHost().getHostName();
-            sb.append(String.format("%d:%s:%d",this.nodeId, hostname, serverSocket.getLocalPort()) + separator);
+            sb.append(String.format("%d:%s:%d", this.nodeId, hostname, serverSocket.getLocalPort()) + separator);
 
         } catch (UnknownHostException e) {
             System.err.println("The node is not connected to a network");
