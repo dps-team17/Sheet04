@@ -85,9 +85,7 @@ public class Node implements INode {
             serverSocket.close();
             listenerThread.join();
 
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
+        } catch (InterruptedException | IOException e) {
             e.printStackTrace();
         }
 
@@ -157,9 +155,6 @@ public class Node implements INode {
 
             public void run() {
 
-                byte[] packetBuffer;
-                DatagramPacket packet;
-
                 try {
                     serverSocket = new ServerSocket(getRandomDynamicPort());
 
@@ -176,8 +171,6 @@ public class Node implements INode {
                         }
                     }
 
-                } catch (SocketException e) {
-                    e.printStackTrace();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -190,7 +183,7 @@ public class Node implements INode {
     private void processRequest(Socket requester) {
 
         try (PrintWriter out = new PrintWriter(requester.getOutputStream(), true);
-             BufferedReader in = new BufferedReader(new InputStreamReader(requester.getInputStream()));
+             BufferedReader in = new BufferedReader(new InputStreamReader(requester.getInputStream()))
         ) {
             // Process request
             String request = in.readLine();
@@ -335,18 +328,15 @@ public class Node implements INode {
 
             synchronized (this) {
                 // Add known nodes
-                for (int i = 0; i < nodeTable.length; i++) {
-
-                    NodeInfo n = nodeTable[i];
+                for (NodeInfo n : nodeTable) {
                     if (n == null) continue;
-
-                    sb.append(String.format("%d:%s:%d", n.getNodeId(), n.getHostName(), n.getPort()) + separator);
+                    sb.append(String.format("%d:%s:%d", n.getNodeId(), n.getHostName(), n.getPort())).append(separator);
                 }
             }
 
             // Add self
             String hostname = InetAddress.getLocalHost().getHostName();
-            sb.append(String.format("%d:%s:%d", this.nodeId, hostname, serverSocket.getLocalPort()) + separator);
+            sb.append(String.format("%d:%s:%d", this.nodeId, hostname, serverSocket.getLocalPort())).append(separator);
 
         } catch (UnknownHostException e) {
             System.err.println("The node is not connected to a network");
