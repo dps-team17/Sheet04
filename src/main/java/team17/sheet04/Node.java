@@ -20,10 +20,13 @@ public class Node implements INode {
     private ServerSocket serverSocket;
     private Random rnd;
     private boolean printSyncMessages;
+    private String lastBroadcastMessage;
 
 
     private Thread listenerThread;
     private Thread syncThread;
+    private boolean printBroadcastMessages;
+    private boolean printStartupMessages;
 
     /**
      * Create a new node with an empty node table (not able to sync)
@@ -40,17 +43,19 @@ public class Node implements INode {
     public Node(NodeInfo syncPartner) {
         this.nodeId = NODES_CREATED++;
         this.printSyncMessages = false;
+        this.printBroadcastMessages = false;
+        this.printStartupMessages = false;
 
         // Init node table
         nodeTable = new NodeInfo[NODE_TABLE_SIZE];
         nodeTable[0] = syncPartner;
-        log("Node created");
+        if (printStartupMessages) log("Node created");
     }
 
     @Override
     public void Connect() {
 
-        log("Starting...");
+        if (printStartupMessages) log("Starting...");
 
         try {
             createListenerThread();
@@ -91,7 +96,7 @@ public class Node implements INode {
 
     @Override
     public void SendBroadcast(String msg) {
-        SendBroadcast(msg, HOP_COUNT);
+        SendBroadcast(msg, HOP_COUNT, null);
     }
 
     @Override
@@ -124,7 +129,7 @@ public class Node implements INode {
 
             public void run() {
 
-                log("Start syncing...");
+                if (printStartupMessages) log("Start syncing...");
 
                 while (running && !this.isInterrupted()) {
                     try {
@@ -141,7 +146,7 @@ public class Node implements INode {
                     }
                 }
 
-                log("Syncing stopped");
+                if (printStartupMessages) log("Syncing stopped");
             }
         };
     }
@@ -158,7 +163,7 @@ public class Node implements INode {
                 try {
                     serverSocket = new ServerSocket(getRandomDynamicPort());
 
-                    log("Listening on port " + serverSocket.getLocalPort());
+                    if (printStartupMessages) log("Listening on port " + serverSocket.getLocalPort());
 
                     while (!serverSocket.isClosed()) {
 
@@ -177,7 +182,7 @@ public class Node implements INode {
                     e.printStackTrace();
                 }
 
-                log("Stop listening");
+                if (printStartupMessages) log("Stop listening");
             }
         };
     }
@@ -240,12 +245,12 @@ public class Node implements INode {
             if (response != null) {
                 processSyncResponse(response);
             } else {
-                log(syncPartner.getHostName() + " is not reachable any more.");
+                if (printSyncMessages) log(syncPartner.getHostName() + " is not reachable any more.");
                 removeNode(syncPartner);
             }
 
         } catch (ConnectException e) {
-            log(syncPartner.getHostName() + " is not reachable any more.");
+            if (printSyncMessages) log(syncPartner.getHostName() + " is not reachable any more.");
             removeNode(syncPartner);
         } catch (IOException e) {
             e.printStackTrace();
@@ -349,16 +354,21 @@ public class Node implements INode {
         return sb.toString();
     }
 
-    private void SendBroadcast(String msg, int hop) {
+    private void SendBroadcast(String msg, int hop, NodeInfo sender) {
 
         String bcmsg = getBroadcastMessage(hop, msg);
 
+        if (msg.equals(lastBroadcastMessage)) return;
+        lastBroadcastMessage = msg;
+
         for (NodeInfo n : nodeTable) {
+
+            if (n == null || n.equals(sender)) continue;
 
             try (Socket s = new Socket(n.getHostName(), n.getPort());
                  PrintWriter out = new PrintWriter(s.getOutputStream(), true)) {
 
-                log(String.format("Broadcast to %s:%d: %s\n", n.getHostName(), n.getPort(), bcmsg));
+                if (printBroadcastMessages) log(String.format("Broadcast to %d: %s", n.getNodeId(), bcmsg));
                 out.println(bcmsg);
 
             } catch (ConnectException e) {
@@ -377,6 +387,9 @@ public class Node implements INode {
         // add header
         sb.append(BROADCAST_MESSAGE + separator);
 
+        // add sender
+        sb.append(this.getNodeInfo().toString() + separator);
+
         // add hop count
         sb.append(hop);
         sb.append(separator);
@@ -391,14 +404,20 @@ public class Node implements INode {
 
         final String[] parts = request.split(separator);
 
-        int hop = Integer.parseInt(parts[1]);
+        NodeInfo sender = NodeInfo.Parse(parts[1]);
+
+        int hop = Integer.parseInt(parts[2]);
         hop--;
 
+        String msg = parts[3];
+
+        if (msg.equals(lastBroadcastMessage)) return;
+
         if (hop >= 0) {
-            SendBroadcast(parts[2], hop);
+            SendBroadcast(msg, hop, sender);
         }
 
-        log("Broadcast received: " + parts[2]);
+        log("Broadcast received: " + msg);
 
     }
 

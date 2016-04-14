@@ -65,4 +65,20 @@ public class NodeInfo {
 
         return this.getHostName().equals(other.getHostName()) && this.getPort() == other.getPort();
     }
+
+    @Override
+    public String toString(){
+        return String.format("%d:%s:%d", nodeId, hostname, port);
+    }
+
+    public static NodeInfo Parse(String info){
+
+        final String[] parts = info.split(":");
+
+        int id = Integer.parseInt(parts[0]);
+        String hostname = parts[1];
+        int port = Integer.parseInt(parts[2]);
+
+        return new NodeInfo(id, hostname, port);
+    }
 }
