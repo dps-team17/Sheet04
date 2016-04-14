@@ -1,8 +1,6 @@
 package team17.sheet04;
 
 
-import sun.plugin.dom.exception.InvalidStateException;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -70,7 +68,7 @@ public class Node implements INode {
     @Override
     public void Disconnect() {
 
-        if (listenerThread == null) throw new InvalidStateException("Node is not connected");
+        if (listenerThread == null) throw new IllegalStateException("Node is not connected");
 
         try {
             syncThread.interrupt();
