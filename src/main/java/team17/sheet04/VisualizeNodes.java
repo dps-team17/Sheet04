@@ -66,7 +66,7 @@ public class VisualizeNodes extends Thread {
 					}
 				}
 
-				System.out.println("Connection Table:");
+				System.out.println("\nConnection Table:");
 				System.out.print("\t");
 				for (int i = 0; i < amountNodes; i++) {
 					System.out.print(nodeNames[i] + "\t");
@@ -80,6 +80,7 @@ public class VisualizeNodes extends Thread {
 					}
 					System.out.println();
 				}
+				System.out.println();
 
 			}
 
