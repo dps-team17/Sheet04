@@ -21,21 +21,23 @@ public class TestClient {
 			nodes.add(node);
 		}
 
-		new VisualizeNodes(nodes).start();
+		VisualizeNodes viz = new VisualizeNodes(nodes);
+		viz.start();
 
 		Thread.sleep(8000);
-		final INode n1 = nodes.remove(0);
+		final INode n1 = nodes.get(0);
 		n1.Disconnect();
 
 		Thread.sleep(5000);
 		INode n3 = new Node(getRandomNodeInfo());
 		n3.Connect();
 		nodes.add(n3);
+		viz.actualizeNodes(nodes);
 
-		Thread.sleep(10000);
-		n1.Connect();
-		nodes.add(n1);
-
+		/*
+		 * Thread.sleep(10000); n1.Connect(); nodes.add(n1);
+		 * viz.actualizeNodes(nodes);
+		 */
 	}
 
 	private static NodeInfo getRandomNodeInfo() {
