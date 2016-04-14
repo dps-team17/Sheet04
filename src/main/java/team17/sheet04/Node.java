@@ -39,7 +39,7 @@ public class Node implements INode {
      */
     public Node(NodeInfo syncPartner) {
         this.nodeId = NODES_CREATED++;
-        this.printSyncMessages = true;
+        this.printSyncMessages = false;
 
         // Init node table
         nodeTable = new NodeInfo[NODE_TABLE_SIZE];
