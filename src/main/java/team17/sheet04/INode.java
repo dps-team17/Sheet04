@@ -3,6 +3,8 @@ package team17.sheet04;
 
 public interface INode {
 
+    int NODE_TABLE_SIZE = 3;
+
     void Connect();
 
     void Disconnect();
@@ -11,5 +13,5 @@ public interface INode {
 
     NodeInfo getNodeInfo();
 
-    //NodeInfo[] getKnownNodes();
+    NodeInfo[] getKnownNodes();
 }

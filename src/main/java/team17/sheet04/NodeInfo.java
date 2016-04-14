@@ -7,17 +7,17 @@ import java.net.InetAddress;
  */
 public class NodeInfo {
 
-    private InetAddress address;
+    private String hostname;
     private int port;
 
     /**
      * Creates a new instance of an node info
      *
-     * @param address the nodes address
+     * @param hostname the hostname of the node
      * @param port    the nodes port number
      */
-    public NodeInfo(InetAddress address, int port) {
-        this.address = address;
+    public NodeInfo(String hostname, int port) {
+        this.hostname = hostname;
         this.port = port;
     }
 
@@ -35,14 +35,14 @@ public class NodeInfo {
      *
      * @return the InetAdress of the node
      */
-    public InetAddress getAddress() {
+    public String getHostName() {
 
-        return address;
+        return hostname;
     }
 
     @Override
     public int hashCode() {
-        return getAddress().hashCode() + getPort();
+        return getHostName().hashCode() + getPort();
     }
 
     @Override
@@ -55,6 +55,6 @@ public class NodeInfo {
 
         NodeInfo other = (NodeInfo) obj;
 
-        return this.getAddress().equals(other.getAddress()) && this.getPort() == other.getPort();
+        return this.getHostName().equals(other.getHostName()) && this.getPort() == other.getPort();
     }
 }
